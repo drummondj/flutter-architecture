@@ -93,7 +93,7 @@ class FakeEntityRepo<T extends EntityWithIdAndTimestamps>
   }
 
   Future<void> _simulatedDelay() async {
-    await Future.delayed(Duration(milliseconds: 3000));
+    await Future.delayed(Duration(milliseconds: 200));
   }
 
   @override
