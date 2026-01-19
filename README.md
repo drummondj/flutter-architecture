@@ -9,6 +9,7 @@ The purpose of this project is to define best practices for future flutter proje
 * ✅ Check createAt and updatedAt updates are working
 * Implement FirebaseEntityRepo
 * Model validation
+* Tests
 
 ## Packages
 
