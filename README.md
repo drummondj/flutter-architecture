@@ -5,9 +5,10 @@ The purpose of this project is to define best practices for future flutter proje
 ## TODO
 
 * ✅ Named searches - QueryRequestEvents should accept a name String and Cubits should store results in a HashMap
-* ReactiveScaffold - for tablets etc
-* Check createAt and updatedAt updates are working
+* ✅ ReactiveScaffold - for tablets etc
+* ✅ Check createAt and updatedAt updates are working
 * Implement FirebaseEntityRepo
+* Model validation
 
 ## Packages
 

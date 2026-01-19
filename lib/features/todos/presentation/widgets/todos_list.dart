@@ -12,8 +12,9 @@ class TodosList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView.builder(
+    return ListView.separated(
       itemCount: todos.length,
+      separatorBuilder: (context, index) => Divider(),
       itemBuilder: (context, index) {
         final todo = todos[index];
         return ListTile(
@@ -24,15 +25,30 @@ class TodosList extends StatelessWidget {
             ),
           ),
           title: Text(todo.title),
-          subtitle: todo.tagIds.isNotEmpty
-              ? Text(
+          subtitle: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            spacing: 4,
+            children: [
+              if (todo.tagIds.isNotEmpty)
+                Text(
                   context
                       .read<TagsCubit>()
                       .getTagsById(todo.tagIds)
                       .map((e) => e.name)
                       .join(" "),
-                )
-              : null,
+                ),
+              if (todo.createdAt != null)
+                Text(
+                  "Created at: ${todo.createdAt!.toString().split('.')[0]}",
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+              if (todo.updatedAt != null)
+                Text(
+                  "Updated at: ${todo.updatedAt!.toString().split('.')[0]}",
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+            ],
+          ),
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
