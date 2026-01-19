@@ -1,5 +1,6 @@
 import 'package:architecture/core/domain/entities/entity_with_id_and_timestamps.dart';
 import 'package:architecture/core/domain/entities/firestore_timestamp_converter.dart';
+import 'package:architecture/core/domain/validation/validators.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:copy_with_extension/copy_with_extension.dart';
 import 'package:json_annotation/json_annotation.dart';
@@ -24,6 +25,13 @@ class Todo extends EntityWithIdAndTimestamps {
 
   @override
   List<Object?> get props => [...super.props, title, completed];
+
+  @override
+  List<String? Function()> get validators => [
+    () => Validators.required(title, fieldName: 'Title'),
+    () => Validators.maxLength(title, 200, fieldName: 'Title'),
+    () => Validators.maxItems(tagIds, 10, fieldName: 'Tags'),
+  ];
 
   @override
   updateFields({String? uid, DateTime? createdAt, DateTime? updatedAt}) {

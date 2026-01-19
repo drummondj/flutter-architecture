@@ -1,5 +1,6 @@
 import 'package:architecture/core/domain/query_builder/query_builder.dart';
 import 'package:architecture/core/presentation/cubits/entity_state.dart';
+import 'package:architecture/core/presentation/extensions/entity_state_extensions.dart';
 import 'package:architecture/core/presentation/widgets/error_page.dart';
 import 'package:architecture/core/presentation/widgets/loading_indicator.dart';
 import 'package:architecture/core/presentation/widgets/loading_page.dart';
@@ -79,20 +80,7 @@ class _TodosPageState extends State<TodosPage> {
       },
       listener: (BuildContext context, state) {
         debugPrint("State: $state");
-        if (state.message != null) {
-          bool isError =
-              (state is EntityLoadedState<Todo> &&
-              state.status == EntityStateStatus.error);
-          ScaffoldMessenger.of(context).removeCurrentSnackBar();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              backgroundColor: isError
-                  ? Theme.of(context).colorScheme.error
-                  : null,
-              content: Center(child: Text(state.message!)),
-            ),
-          );
-        }
+        context.showEntityMessage(state);
       },
     );
   }

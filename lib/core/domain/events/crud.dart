@@ -32,8 +32,12 @@ class QueryErrorEvent<T extends EntityWithIdAndTimestamps> extends JozzEvent {
 }
 
 class UpdateEntityEvent<T extends EntityWithIdAndTimestamps> extends JozzEvent {
-  final T entity;
-  const UpdateEntityEvent({required this.entity});
+  final T originalEntity;
+  final T newEntity;
+  const UpdateEntityEvent({
+    required this.originalEntity,
+    required this.newEntity,
+  });
 }
 
 class DeleteEntityEvent<T extends EntityWithIdAndTimestamps> extends JozzEvent {

@@ -1,4 +1,5 @@
 import 'package:architecture/core/domain/entities/firestore_timestamp_converter.dart';
+import 'package:architecture/core/domain/validation/validation_result.dart';
 import 'package:equatable/equatable.dart';
 
 /// An abstract base class for entities that have an identifier and timestamp fields.
@@ -45,4 +46,26 @@ abstract class EntityWithIdAndTimestamps<T> extends Equatable {
   List<Object?> get props => [uid, createdAt, updatedAt];
 
   Map<String, dynamic> toJson();
+
+  /// Concrete implementations should override this to provide their validation rules.
+  /// Return a list of validator functions that return error messages (or null if valid).
+  List<String? Function()> get validators => [];
+
+  /// Executes all validators and returns a ValidationResult.
+  /// Collects all error messages from failed validators.
+  ValidationResult validate() {
+    final errors = <String>[];
+
+    for (final validator in validators) {
+      final error = validator();
+      if (error != null) {
+        errors.add(error);
+      }
+    }
+
+    return ValidationResult(
+      status: errors.isEmpty ? ValidationStatus.pass : ValidationStatus.fail,
+      errors: errors,
+    );
+  }
 }

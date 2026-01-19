@@ -21,6 +21,7 @@ class TodosList extends StatelessWidget {
           leading: Checkbox(
             value: todo.completed,
             onChanged: (value) => context.read<TodosCubit>().update(
+              todo,
               todo.copyWith(completed: value ?? false),
             ),
           ),

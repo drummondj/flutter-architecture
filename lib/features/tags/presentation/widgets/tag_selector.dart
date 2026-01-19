@@ -41,7 +41,7 @@ class _TagSelectorState extends State<TagSelector> {
                   .map(
                     (tag) => FormBuilderFieldOption<String>(
                       value: tag.uid!,
-                      child: Text(tag.name),
+                      child: Text("${tag.name} (${tag.todoCount})"),
                     ),
                   )
                   .toList(),

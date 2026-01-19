@@ -51,12 +51,12 @@ class FakeEntityRepo<T extends EntityWithIdAndTimestamps>
       }
     });
     _eventBus.autoListen<UpdateEntityEvent<T>>(this, (event) async {
-      final result = await update(event.entity);
+      final result = await update(event.newEntity);
       switch (result) {
         case Ok<T>():
           _eventBus.emitEvent(
             UpdateEntityAfterPersistenceEvent<T>(
-              originalEntity: event.entity,
+              originalEntity: event.newEntity,
               newEntity: result.value,
             ),
           );
@@ -64,7 +64,7 @@ class FakeEntityRepo<T extends EntityWithIdAndTimestamps>
           _eventBus.emitEvent(
             EntityPersistenceError<T>(
               status: EntityPersistenceErrorStatus.couldNotCreate,
-              newEntity: event.entity,
+              newEntity: event.newEntity,
               error: result.error,
             ),
           );

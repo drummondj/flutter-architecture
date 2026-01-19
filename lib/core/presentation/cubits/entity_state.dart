@@ -67,7 +67,7 @@ sealed class EntityState<T extends EntityWithIdAndTimestamps>
   final EntityStateStatus status;
   final String? message;
 
-  const EntityState({required this.status, this.message});
+  const EntityState({required this.status, required this.message});
 
   @override
   List<Object?> get props => [status, message];
@@ -80,12 +80,12 @@ sealed class EntityState<T extends EntityWithIdAndTimestamps>
 
 class EntityInitialState<T extends EntityWithIdAndTimestamps>
     extends EntityState<T> {
-  const EntityInitialState({required super.status, super.message});
+  const EntityInitialState({required super.status, required super.message});
 }
 
 class EntityLoadingState<T extends EntityWithIdAndTimestamps>
     extends EntityState<T> {
-  const EntityLoadingState({required super.status, super.message});
+  const EntityLoadingState({required super.status, required super.message});
 }
 
 @CopyWith()
@@ -96,7 +96,7 @@ class EntityLoadedState<T extends EntityWithIdAndTimestamps>
   const EntityLoadedState({
     required this.searchResults,
     required super.status,
-    super.message,
+    required super.message,
   });
 
   @override
@@ -152,7 +152,7 @@ class EntityErrorState<T extends EntityWithIdAndTimestamps>
   final AppException error;
   const EntityErrorState({
     required super.status,
-    super.message,
+    required super.message,
     required this.error,
   });
 }

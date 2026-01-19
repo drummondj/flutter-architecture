@@ -10,6 +10,7 @@ The purpose of this project is to define best practices for future flutter proje
 * Implement FirebaseEntityRepo
 * Model validation
 * Tests
+* Customize entity type names in messages, for example Todo -> Task
 
 ## Packages
 

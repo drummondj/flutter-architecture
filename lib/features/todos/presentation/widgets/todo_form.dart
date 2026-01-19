@@ -48,6 +48,7 @@ class _TodoFormState extends State<TodoForm> {
       context.read<TodosCubit>().create(Todo(title: title, tagIds: tagIds));
     } else {
       context.read<TodosCubit>().update(
+        widget.initialTodo!,
         widget.initialTodo!.copyWith(title: title, tagIds: tagIds),
       );
     }

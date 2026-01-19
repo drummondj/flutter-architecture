@@ -17,7 +17,7 @@ import 'package:synchronized/synchronized.dart';
 class EntityCubit<T extends EntityWithIdAndTimestamps>
     extends Cubit<EntityState<T>>
     with JozzLifecycleMixin {
-  final EventBus _eventBus;
+  final EventBus eventBus;
 
   final CreateEntity<T> createEntity;
   final UpdateEntity<T> updateEntity;
@@ -25,13 +25,17 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
   final QueryEntities<T> queryEntities;
 
   EntityCubit({
-    required EventBus eventBus,
+    required this.eventBus,
     required this.createEntity,
     required this.updateEntity,
     required this.deleteEntity,
     required this.queryEntities,
-  }) : _eventBus = eventBus,
-       super(EntityInitialState<T>(status: EntityStateStatus.initial)) {
+  }) : super(
+         EntityInitialState<T>(
+           status: EntityStateStatus.initial,
+           message: null,
+         ),
+       ) {
     subscribe();
   }
 
@@ -41,19 +45,19 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
   void subscribe() {
     // Update entities after they have been peristed by the repo
     // This is usually used to update the uid from the back-end
-    _eventBus.autoListen<UpdateEntityAfterPersistenceEvent<T>>(this, (
+    eventBus.autoListen<UpdateEntityAfterPersistenceEvent<T>>(this, (
       event,
     ) async {
       await handleUpdateEntityAfterPersistenceEvent(event);
     });
 
     // Handle errors communicating with the back-end
-    _eventBus.autoListen<EntityPersistenceError<T>>(this, (event) async {
+    eventBus.autoListen<EntityPersistenceError<T>>(this, (event) async {
       await handleEntityPersistenceError(event);
     });
 
     // Listen for query results
-    _eventBus.autoListen<QueryResponseEvent<T>>(this, (event) async {
+    eventBus.autoListen<QueryResponseEvent<T>>(this, (event) async {
       await handleQueryResponseEvent(event);
     });
   }
@@ -71,7 +75,7 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
       emit(
         currentState
             .updateEntityWithoutId(event.originalEntity, event.newEntity)
-            .copyWith(status: EntityStateStatus.loaded),
+            .copyWith(status: EntityStateStatus.loaded, message: null),
       );
     });
   }
@@ -144,7 +148,7 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
         emit(
           currentState
               .addSearchResult(event.response)
-              .copyWith(status: EntityStateStatus.loaded),
+              .copyWith(status: EntityStateStatus.loaded, message: null),
         );
       } else {
         // Otherwise emit a new EntityLoadedState
@@ -156,6 +160,7 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
               ),
             },
             status: EntityStateStatus.loaded,
+            message: null,
           ),
         );
       }
@@ -181,7 +186,10 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
           emit(
             currentState
                 .createEntity(result.value)
-                .copyWith(status: EntityStateStatus.updated),
+                .copyWith(
+                  status: EntityStateStatus.updated,
+                  message: successMessage,
+                ),
           );
         case Error<T>():
           onError(result.error, result.error.stackTrace ?? StackTrace.current);
@@ -201,9 +209,16 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
 
       if (state is EntityLoadedState<T>) {
         loadedState = state as EntityLoadedState<T>;
-        emit(loadedState.copyWith(status: EntityStateStatus.updating));
+        emit(
+          loadedState.copyWith(
+            status: EntityStateStatus.updating,
+            message: null,
+          ),
+        );
       } else {
-        emit(EntityLoadingState(status: EntityStateStatus.loading));
+        emit(
+          EntityLoadingState(status: EntityStateStatus.loading, message: null),
+        );
       }
 
       // Do optimistic query
@@ -217,7 +232,7 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
         emit(
           loadedState
               .addSearchResult(optimisticResponse)
-              .copyWith(status: EntityStateStatus.updating),
+              .copyWith(status: EntityStateStatus.updating, message: ''),
         );
       }
 
@@ -232,13 +247,18 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
             EntityErrorState(
               status: EntityStateStatus.error,
               error: UserException(message: result.sanitizedErrorMessage),
+              message: result.sanitizedErrorMessage,
             ),
           );
       }
     });
   }
 
-  Future<void> update(T entity, {String? successMessage}) async {
+  Future<void> update(
+    T originalEntity,
+    T newEntity, {
+    String? successMessage,
+  }) async {
     await lock.synchronized(() async {
       if (state is! EntityLoadedState<T>) {
         return;
@@ -250,15 +270,20 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
           message: null,
         ),
       );
-      final result = await updateEntity(entity);
+      final result = await updateEntity(
+        UpdateEntityParams(
+          originalEntity: originalEntity,
+          newEntity: newEntity,
+        ),
+      );
 
       switch (result) {
         case Ok<T>():
           emit(
             currentState
-                .updateEntity(entity)
+                .updateEntity(newEntity)
                 .copyWith(
-                  message: successMessage ?? "${entity.runtimeType} updated",
+                  message: successMessage ?? "${newEntity.runtimeType} updated",
                   status: EntityStateStatus.updated,
                 ),
           );

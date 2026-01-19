@@ -91,23 +91,72 @@ EntityCubit manages optimistic updates:
 
 ## Cross-Cubit Communication
 
-Cubits can access each other's data through helper methods, not through events:
+### Data Access Pattern
+Cubits expose helper methods for other features to query their state:
 
-- **Pattern**: Cubits expose getter methods for other features to query their state
-- **Example**: TagsCubit provides `getTagsById(List<String>)` method for TodosCubit to resolve tag references
-- **Implementation**:
-  ```dart
-  // In TagsCubit - expose data
-  List<Tag> getTagsById(List<String> tagIds) {
-    return getAllTags().where((e) => tagIds.contains(e.uid)).toList();
+```dart
+// In TagsCubit - expose data
+List<Tag> getTagsById(List<String> tagIds) {
+  return getAllTags().where((e) => tagIds.contains(e.uid)).toList();
+}
+
+// In TodosList widget - access via context.read()
+context.read<TagsCubit>().getTagsById(todo.tagIds)
+```
+
+**Key Points:**
+- Use synchronous getter methods for reading data across cubits
+- Always preload dependent data in initState() before querying
+- Data Relationships: Todos store `tagIds` (List<String>), Tags store `todoCount` (int)
+
+### Side-Effect Pattern (Event-Driven)
+For reactive updates when one cubit's changes should trigger updates in another, subscribe to CRUD events:
+
+```dart
+@lazySingleton
+class TagsCubit extends EntityCubit<Tag> {
+  TagsCubit({
+    required super.eventBus,
+    // ... other dependencies
+  }) : super() {
+    // Subscribe to other feature's CRUD events
+    eventBus.autoListen<CreateEntityEvent<Todo>>(this, handleCreateTodoEvent);
+    eventBus.autoListen<DeleteEntityEvent<Todo>>(this, handleDeleteTodoEvent);
+    eventBus.autoListen<UpdateEntityEvent<Todo>>(this, handleUpdateTodoEvent);
   }
 
-  // In TodosList widget - access via context.read()
-  context.read<TagsCubit>().getTagsById(todo.tagIds)
-  ```
-- **Data Relationships**: Todos store `tagIds` (List<String>), Tags store `todoCount` (int)
-- **Preloading**: Load dependent data in initState() before querying dependent entities
-- **Future**: Consider event-driven updates when one cubit's changes should trigger updates in another (e.g., updating Tag.todoCount when todos are created/deleted)
+  void handleCreateTodoEvent(CreateEntityEvent<Todo> event) {
+    // Increment Tag.todoCount for selected tags
+    for (final tag in getTagsById(event.entity.tagIds)) {
+      update(tag, tag.copyWith(todoCount: tag.todoCount + 1));
+    }
+  }
+
+  void handleUpdateTodoEvent(UpdateEntityEvent<Todo> event) {
+    // Calculate differential updates
+    List<String> removedTagIds = event.originalEntity.tagIds
+        .where((e) => !event.newEntity.tagIds.contains(e))
+        .toList();
+    List<String> addedTagIds = event.newEntity.tagIds
+        .where((e) => !event.originalEntity.tagIds.contains(e))
+        .toList();
+
+    for (final tag in getTagsById(removedTagIds)) {
+      update(tag, tag.copyWith(todoCount: tag.todoCount - 1));
+    }
+    for (final tag in getTagsById(addedTagIds)) {
+      update(tag, tag.copyWith(todoCount: tag.todoCount + 1));
+    }
+  }
+}
+```
+
+**Implementation Steps:**
+1. Subscribe to relevant CRUD events in the cubit's constructor using `eventBus.autoListen<EventType<Entity>>(this, handler)`
+2. Create handler methods that perform side-effects (update counts, sync related data, etc.)
+3. Use helper methods like `getTagsById()` to resolve related entities
+4. Call `update()` to persist changes through the normal event flow
+5. For update events, calculate diffs to avoid unnecessary operations (only update what changed)
 
 ## Common Pitfalls
 
