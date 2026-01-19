@@ -37,7 +37,6 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
 
   final lock = Lock();
   final List<String> tokenQueue = [];
-  QueryBuilder? lastQuery;
 
   void subscribe() {
     // Update entities after they have been peristed by the repo
@@ -70,12 +69,9 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
       EntityLoadedState<T> currentState = state as EntityLoadedState<T>;
 
       emit(
-        EntityLoadedState(
-          entities: currentState.entities
-              .map((e) => (e == event.originalEntity) ? event.newEntity : e)
-              .toList(),
-          status: EntityStateStatus.loaded,
-        ),
+        currentState
+            .updateEntityWithoutId(event.originalEntity, event.newEntity)
+            .copyWith(status: EntityStateStatus.loaded),
       );
     });
   }
@@ -93,26 +89,24 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
         case EntityPersistenceErrorStatus.couldNotCreate:
           // Remove entity from list
           emit(
-            currentState.copyWith(
-              entities: currentState.entities
-                  .where((e) => e != event.newEntity)
-                  .toList(),
-              message: event.error.message,
-              status: EntityStateStatus.error,
-            ),
+            currentState
+                .deleteEntity(event.newEntity!)
+                .copyWith(
+                  message: event.error.message,
+                  status: EntityStateStatus.error,
+                ),
           );
           onError(event.error, event.error.stackTrace ?? StackTrace.current);
           break;
         case EntityPersistenceErrorStatus.couldNotUpdate:
           // Replace new entity with original entity
           emit(
-            currentState.copyWith(
-              entities: currentState.entities
-                  .map((e) => e == event.newEntity! ? event.originalEntity! : e)
-                  .toList(),
-              message: event.error.message,
-              status: EntityStateStatus.error,
-            ),
+            currentState
+                .updateEntity(event.originalEntity!)
+                .copyWith(
+                  message: event.error.message,
+                  status: EntityStateStatus.error,
+                ),
           );
           onError(event.error, event.error.stackTrace ?? StackTrace.current);
           break;
@@ -120,11 +114,12 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
         case EntityPersistenceErrorStatus.couldNotDelete:
           // Re-insert original entity
           emit(
-            currentState.copyWith(
-              entities: currentState.entities + [event.originalEntity!],
-              message: event.error.message,
-              status: EntityStateStatus.error,
-            ),
+            currentState
+                .createEntity(event.originalEntity!)
+                .copyWith(
+                  message: event.error.message,
+                  status: EntityStateStatus.error,
+                ),
           );
           onError(event.error, event.error.stackTrace ?? StackTrace.current);
           break;
@@ -142,18 +137,29 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
       // Remove token from queue
       tokenQueue.remove(event.requestEvent.token);
 
-      // Emit new state with updated entities
-      emit(
-        EntityLoadedState(
-          entities: List.from(event.response.entities),
-          status: EntityStateStatus.loaded,
-        ),
-      );
-    });
-  }
+      if (state is EntityLoadedState<T>) {
+        // If we are already in loaded state then update the current state
+        EntityLoadedState<T> currentState = (state as EntityLoadedState<T>);
 
-  Future<void> handleUpdateEntityEvent(UpdateEntityEvent<T> event) async {
-    await update(event.entity);
+        emit(
+          currentState
+              .addSearchResult(event.response)
+              .copyWith(status: EntityStateStatus.loaded),
+        );
+      } else {
+        // Otherwise emit a new EntityLoadedState
+        emit(
+          EntityLoadedState(
+            searchResults: {
+              event.response.request.name: NamedQueryResult.fromQueryResponse(
+                event.response,
+              ),
+            },
+            status: EntityStateStatus.loaded,
+          ),
+        );
+      }
+    });
   }
 
   Future<void> create(T entity, {String? successMessage}) async {
@@ -169,15 +175,13 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
         ),
       );
       final result = await createEntity(entity);
-      refreshLastQuery();
+
       switch (result) {
         case Ok<T>():
           emit(
-            currentState.copyWith(
-              message: successMessage ?? "${entity.runtimeType} created",
-              entities: currentState.entities + [result.value],
-              status: EntityStateStatus.updated,
-            ),
+            currentState
+                .createEntity(result.value)
+                .copyWith(status: EntityStateStatus.updated),
           );
         case Error<T>():
           onError(result.error, result.error.stackTrace ?? StackTrace.current);
@@ -202,19 +206,18 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
         emit(EntityLoadingState(status: EntityStateStatus.loading));
       }
 
-      // Register last query for refreshing
-      lastQuery = request;
-
       // Do optimistic query
       if (loadedState != null) {
+        final previousEntities =
+            loadedState.getSearchResultByName(request.name)?.entities ?? [];
+        final optimisticResponse = QueryResponse(
+          request: request,
+          entities: OptimisticEntityFilter.query<T>(request, previousEntities),
+        );
         emit(
-          loadedState.copyWith(
-            entities: OptimisticEntityFilter.query<T>(
-              request,
-              loadedState.entities,
-            ),
-            status: EntityStateStatus.updating,
-          ),
+          loadedState
+              .addSearchResult(optimisticResponse)
+              .copyWith(status: EntityStateStatus.updating),
         );
       }
 
@@ -235,12 +238,6 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
     });
   }
 
-  Future<void> refreshLastQuery() async {
-    if (lastQuery != null) {
-      await query(lastQuery!);
-    }
-  }
-
   Future<void> update(T entity, {String? successMessage}) async {
     await lock.synchronized(() async {
       if (state is! EntityLoadedState<T>) {
@@ -254,18 +251,16 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
         ),
       );
       final result = await updateEntity(entity);
-      refreshLastQuery();
 
       switch (result) {
         case Ok<T>():
           emit(
-            currentState.copyWith(
-              message: successMessage ?? "${entity.runtimeType} updated",
-              entities: currentState.entities
-                  .map((e) => e.uid == result.value.uid ? result.value : e)
-                  .toList(),
-              status: EntityStateStatus.updated,
-            ),
+            currentState
+                .updateEntity(entity)
+                .copyWith(
+                  message: successMessage ?? "${entity.runtimeType} updated",
+                  status: EntityStateStatus.updated,
+                ),
           );
         case Error<T>():
           onError(result.error, result.error.stackTrace ?? StackTrace.current);
@@ -292,17 +287,16 @@ class EntityCubit<T extends EntityWithIdAndTimestamps>
         ),
       );
       final result = await deleteEntity(entity);
-      refreshLastQuery();
+
       switch (result) {
         case Ok<T>():
           emit(
-            currentState.copyWith(
-              message: successMessage ?? "${entity.runtimeType} deleted",
-              entities: currentState.entities
-                  .where((e) => e.uid != result.value.uid)
-                  .toList(),
-              status: EntityStateStatus.updated,
-            ),
+            currentState
+                .deleteEntity(entity)
+                .copyWith(
+                  message: successMessage ?? "${entity.runtimeType} deleted",
+                  status: EntityStateStatus.updated,
+                ),
           );
         case Error<T>():
           onError(result.error, result.error.stackTrace ?? StackTrace.current);

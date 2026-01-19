@@ -1,3 +1,4 @@
+import 'package:architecture/core/domain/query_builder/query_builder.dart';
 import 'package:architecture/core/presentation/cubits/entity_cubit.dart';
 import 'package:architecture/core/presentation/cubits/entity_state.dart';
 import 'package:architecture/features/tags/domain/entities/tag.dart';
@@ -17,12 +18,21 @@ class TagsCubit extends EntityCubit<Tag> {
     required QueryTags super.queryEntities,
   });
 
-  List<Tag> getTagsById(List<String> tagIds) {
+  Future<void> loadAllTags() async {
+    await query(QueryBuilder(name: "all_tags"));
+  }
+
+  List<Tag> getAllTags() {
     if (state is EntityLoadedState<Tag>) {
-      return (state as EntityLoadedState<Tag>).entities
-          .where((e) => tagIds.contains(e.uid))
-          .toList();
+      return (state as EntityLoadedState<Tag>)
+              .getSearchResultByName("all_tags")
+              ?.entities ??
+          [];
     }
     return [];
+  }
+
+  List<Tag> getTagsById(List<String> tagIds) {
+    return getAllTags().where((e) => tagIds.contains(e.uid)).toList();
   }
 }

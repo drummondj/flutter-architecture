@@ -26,7 +26,7 @@ class _TodosPageState extends State<TodosPage> {
     super.initState();
 
     // pre-load tags
-    context.read<TagsCubit>().query(QueryBuilder());
+    context.read<TagsCubit>().loadAllTags();
 
     // pre-load todos
     _runQuery();
@@ -34,7 +34,9 @@ class _TodosPageState extends State<TodosPage> {
 
   void _runQuery() {
     context.read<TodosCubit>().query(
-      QueryBuilder().limit(limit).where('completed', equals: completed),
+      QueryBuilder(
+        name: "default",
+      ).limit(limit).where('completed', equals: completed),
     );
   }
 
@@ -51,11 +53,11 @@ class _TodosPageState extends State<TodosPage> {
           case EntityInitialState<Todo>() || EntityLoadingState<Todo>():
             return LoadingPage();
           case EntityLoadedState<Todo>(
-            entities: final todos,
+            searchResults: final searchResult,
             status: final status,
           ):
             return TodosScaffold(
-              todos: todos,
+              todos: searchResult["default"]?.entities ?? [],
               isUpdating: status == EntityStateStatus.updating,
               actions: [
                 if (status == EntityStateStatus.updating) ...[

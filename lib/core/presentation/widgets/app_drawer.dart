@@ -7,6 +7,7 @@ class AppDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Drawer(
+        shape: ContinuousRectangleBorder(),
         child: Padding(
           padding: const EdgeInsets.all(8.0),
           child: Column(

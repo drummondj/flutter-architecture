@@ -22,6 +22,10 @@ class OrderBySpecification {
 }
 
 class QueryBuilder {
+  final String name;
+
+  QueryBuilder({required this.name});
+
   int? _limit;
   int? get limitValue => _limit;
 

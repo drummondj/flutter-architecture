@@ -1,4 +1,3 @@
-import 'package:architecture/core/domain/query_builder/query_builder.dart';
 import 'package:architecture/core/presentation/cubits/entity_state.dart';
 import 'package:architecture/core/presentation/widgets/error_message.dart';
 import 'package:architecture/core/presentation/widgets/loading_indicator.dart';
@@ -20,7 +19,7 @@ class _TagSelectorState extends State<TagSelector> {
   @override
   void initState() {
     super.initState();
-    context.read<TagsCubit>().query(QueryBuilder());
+    context.read<TagsCubit>().loadAllTags();
   }
 
   @override
@@ -36,7 +35,9 @@ class _TagSelectorState extends State<TagSelector> {
             return FormBuilderCheckboxGroup<String>(
               name: "tagIds",
               initialValue: widget.initialTagIds,
-              options: state.entities
+              options: context
+                  .read<TagsCubit>()
+                  .getAllTags()
                   .map(
                     (tag) => FormBuilderFieldOption<String>(
                       value: tag.uid!,

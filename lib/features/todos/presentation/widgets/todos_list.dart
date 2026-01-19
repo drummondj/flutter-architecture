@@ -23,7 +23,7 @@ class TodosList extends StatelessWidget {
               todo.copyWith(completed: value ?? false),
             ),
           ),
-          title: Text("${todo.uid ?? "Unknown"} ${todo.title}"),
+          title: Text(todo.title),
           subtitle: todo.tagIds.isNotEmpty
               ? Text(
                   context
@@ -38,11 +38,11 @@ class TodosList extends StatelessWidget {
             children: [
               IconButton(
                 onPressed: () => showEditTodoForm(context, todo),
-                icon: Icon(Icons.edit_outlined),
+                icon: const Icon(Icons.edit_outlined),
               ),
               IconButton(
                 onPressed: () => context.read<TodosCubit>().delete(todo),
-                icon: Icon(Icons.delete_outline),
+                icon: const Icon(Icons.delete_outline),
               ),
             ],
           ),

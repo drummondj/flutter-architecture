@@ -2,6 +2,13 @@
 
 The purpose of this project is to define best practices for future flutter projects, based on my learning from the whatnext project development.
 
+## TODO
+
+* ✅ Named searches - QueryRequestEvents should accept a name String and Cubits should store results in a HashMap
+* ReactiveScaffold - for tablets etc
+* Check createAt and updatedAt updates are working
+* Implement FirebaseEntityRepo
+
 ## Packages
 
 Install the following packages for new projects:
