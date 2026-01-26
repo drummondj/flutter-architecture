@@ -8,7 +8,7 @@ part 'tag.g.dart';
 
 @CopyWith()
 @JsonSerializable()
-class Tag extends EntityWithIdAndTimestamps {
+class Tag extends EntityWithIdAndTimestamps<Tag> {
   final String name;
   final int todoCount;
 
@@ -24,7 +24,7 @@ class Tag extends EntityWithIdAndTimestamps {
   List<Object?> get props => [...super.props, name, todoCount];
 
   @override
-  updateFields({String? uid, DateTime? createdAt, DateTime? updatedAt}) {
+  updateEntityFields({String? uid, DateTime? createdAt, DateTime? updatedAt}) {
     return copyWith(
       uid: uid ?? this.uid,
       createdAt: createdAt ?? this.createdAt,

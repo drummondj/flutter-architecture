@@ -40,7 +40,7 @@ abstract class EntityWithIdAndTimestamps<T> extends Equatable {
     this.updatedAt,
   });
 
-  T updateFields({String? uid, DateTime? createdAt, DateTime? updatedAt});
+  T updateEntityFields({String? uid, DateTime? createdAt, DateTime? updatedAt});
 
   @override
   List<Object?> get props => [uid, createdAt, updatedAt];

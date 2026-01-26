@@ -34,7 +34,7 @@ class Todo extends EntityWithIdAndTimestamps {
   ];
 
   @override
-  updateFields({String? uid, DateTime? createdAt, DateTime? updatedAt}) {
+  updateEntityFields({String? uid, DateTime? createdAt, DateTime? updatedAt}) {
     return copyWith(
       uid: uid ?? this.uid,
       createdAt: createdAt ?? this.createdAt,

@@ -100,7 +100,7 @@ class FakeEntityRepo<T extends EntityWithIdAndTimestamps>
   Future<Result<T>> create(T entity) async {
     await _simulatedDelay();
     try {
-      T withId = entity.updateFields(
+      T withId = entity.updateEntityFields(
         uid: DateTime.now().millisecondsSinceEpoch.toString(),
         createdAt: DateTime.now(),
       );
@@ -147,7 +147,7 @@ class FakeEntityRepo<T extends EntityWithIdAndTimestamps>
         );
       }
 
-      entities[index] = entity.updateFields(updatedAt: DateTime.now());
+      entities[index] = entity.updateEntityFields(updatedAt: DateTime.now());
       return Result.ok(entities[index]);
     } catch (e, stackTrace) {
       return Result.error(
